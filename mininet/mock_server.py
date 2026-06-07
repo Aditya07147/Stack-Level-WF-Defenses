@@ -5,10 +5,6 @@ import os
 PORT = 8080
 SITES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sites")
 
-# FIX: Session-level target. Every site visit must total exactly this many
-# bytes transferred, regardless of how many files it has.
-# Set this above the largest possible session: site5 = 10 real files.
-# 10 files * largest possible file (~2MB) = ~20MB. Use 30MB as ceiling.
 SESSION_TARGET_BYTES = 30 * 1024 * 1024  # 30 MB
 
 class Handler(http.server.SimpleHTTPRequestHandler):

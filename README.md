@@ -132,7 +132,7 @@ python3 ml_evaluation/train_model2.py
 
 ---
 
-## 👥 Authors & Context
+##  Authors & Context
 *   **Aditya Shukla** - IIT Guwahati
 *   **Kartik Maheshwari** - IIT Guwahati
-*   *Project under the "Reproduction of Empirical Results" track for **CS544: Topics in Networks** (Dr. T. Venkatesh, April 2026).* 
+*   *Project under the "Reproduction of Empirical Results" track for **CS544: Topics in Networks** (Dr. T. Venkatesh, Jan - May 2026).* 

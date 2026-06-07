@@ -3,14 +3,13 @@
 #include <linux/types.h>
 #include <bpf/bpf_helpers.h>
 
-/* Redefine basic types to avoid header conflicts */
 typedef __u64 u64;
 typedef __u32 u32;
 
 SEC("classifier")
 int stob_defense(struct __sk_buff *skb) {
     /* 
-     * Stob Timing Primitive: Inter-arrival Jitter (Section 4.2)
+     * Stob Timing Primitive: Inter-arrival Jitter
      *
      * We modify the packet's departure timestamp (tstamp). 
      * When the FQ (Fair Queuing) qdisc sees this, it will hold the packet

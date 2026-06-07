@@ -107,7 +107,6 @@ def run_clean_collection(net, data_dir, samples):
         for s in range(samples):
             pcap_file = f"{data_dir}/{site}_s{s}.pcap"
 
-            # KEY FIX: single string, -s 96 captures headers only (no payload)
             tcpdump_cmd = f"tcpdump -i client-eth0 -s 96 -w {pcap_file} port 8080 2>/dev/null &"
             client.cmd(tcpdump_cmd)
             time.sleep(1.5)
@@ -188,7 +187,6 @@ if __name__ == '__main__':
     server.cmd("python3 server/mock_server.py &")
     time.sleep(2)
 
-    # Verify tcpdump supports -s flag on this machine
     test = os.popen("tcpdump --help 2>&1 | grep snaplen").read()
     if not test:
         print("[WARN] Could not verify tcpdump -s support. Proceeding anyway.")
