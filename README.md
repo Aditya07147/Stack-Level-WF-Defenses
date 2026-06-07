@@ -4,6 +4,26 @@ An end-to-end empirical replication of **Stob (Stack-level Traffic Obfuscation)*
 
 ---
 
+##  Repository Structure
+
+The project is structured logically into standalone pipelines:
+
+```text
+├── docs/                                     # Academic deliverables and reference literature
+│   ├── CS544_Course_Project_Presentation.pdf # Class presentation slides (PDF)
+│   ├── CS544_Course_Project_Report.pdf       # Complete academic project report (PDF)
+│   └── Research_Paper.pdf                    # Reference HotNets '25 "Stob" research paper (PDF)
+├── ebpf/
+│   └── stob_kern.c                           # eBPF C program to inject TC egress timing jitter
+├── mininet/
+│   ├── mock_server.py                        # Python server serving 10 sites with dynamic 3MB padding
+│   └── run_experiment.py                     # Virtual network topology, data collection, and traffic capture
+└── ml_evaluation/
+    ├── train_model1.py                       # Trains baseline classifier on undefended traffic (90.00% accuracy)
+    ├── train_model2.py                       # Trains adaptive classifier on defended traffic (30.00% accuracy)
+    └── eval_cross.py                         # Evaluates Model 1 on defended traffic (10.00% random chance baseline)
+```
+
 ##  Background & Motivation
 
 ### 1. Website Fingerprinting & The Encryption Paradox
@@ -25,24 +45,6 @@ Using lightweight kernel technologies like **eBPF (Extended Berkeley Packet Filt
 
 ### 4. The Censorship Scenario (Early-Connection Defenses)
 Real-world state censors must make blocking decisions **early in the connection** (typically within the first 15 to 45 packets) before a client can download the webpage . By evaluating defenses on early-packet sequences, the Stob framework demonstrates that kernel-level packet splitting and pacing delays effectively scramble the traffic fingerprint during the critical "last mile" of handshake and early data transmission .
-
----
-
-##  Repository Structure
-
-The project is structured logically into three standalone pipelines:
-
-```text
-├── ebpf/
-│   └── stob_kern.c           # eBPF C program to inject TC egress timing jitter
-├── mininet/
-│   ├── mock_server.py        # Python server serving 10 sites with dynamic 3MB padding
-│   └── run_experiment.py     # Virtual network topology, data collection, and traffic capture
-└── ml_evaluation/
-    ├── train_model1.py       # Trains baseline classifier on undefended traffic (90.00% accuracy)
-    ├── train_model2.py       # Trains adaptive classifier on defended traffic (30.00% accuracy)
-    └── eval_cross.py         # Evaluates Model 1 on defended traffic (10.00% random chance baseline)
-```
 
 ---
 
