@@ -55,33 +55,41 @@ def apply_stob_defense(net):
     server = net.get('server')
     print("\n*** [STOB] Applying defense...")
 
-    # Mount BPF fs (required for eBPF TC programs)
-    os.system("mount -t bpf bpf /sys/fs/bpf/ 2>/dev/null || true")
+    # 1. Setup the BPF filesystem and unmask errors so we can debug permissions
+    server.cmd("mkdir -p /sys/fs/bpf")
+    mount_out = server.cmd("mount -t bpf bpf /sys/fs/bpf 2>&1")
+    if "Permission denied" in mount_out or "Operation not permitted" in mount_out:
+        print(f"[ERROR] Cannot mount BPF filesystem: {mount_out.strip()}")
+        print("        If using Docker, you MUST start it with the --privileged flag.")
+    
+    # 2. Bypass `tc`'s mkdir bug by manually creating the globals folder
+    server.cmd("mkdir -p /sys/fs/bpf/tc/globals 2>/dev/null || true")
 
-    # --- MSS Clamping via iptables (in mangle table) ---
+    # --- MSS Clamping via iptables ---
     server.cmd("iptables -t mangle -F 2>/dev/null || true")
     server.cmd("iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 500")
 
-    # --- Timing Regularization via eBPF & FQ ---
-    server.cmd("tc qdisc del dev server-eth0 clsact 2>/dev/null || true")
+    # --- Timing Regularization ---
     server.cmd("tc qdisc del dev server-eth0 root 2>/dev/null || true")
+    server.cmd("tc qdisc del dev server-eth0 clsact 2>/dev/null || true")
     server.cmd("tc qdisc add dev server-eth0 root fq")
     server.cmd("tc qdisc add dev server-eth0 clsact")
 
-    # Attach eBPF classifier with direct-action (da) flag
-    out = server.cmd(f"tc filter add dev server-eth0 egress bpf obj {EBPF_OBJ} sec classifier da 2>&1")
-    if "Unable to load" in out or "failed" in out.lower() or "error" in out.lower():
-        print(f"[WARN] eBPF loading failed: {out.strip()}")
-        print("[WARN] Falling back to netem jitter...")
-        server.cmd("tc qdisc del dev server-eth0 clsact 2>/dev/null || true")
+    # 3. USE YOUR ORIGINAL PATH VARIABLE HERE
+    out = server.cmd(f"tc filter add dev server-eth0 egress bpf da obj {EBPF_OBJ} sec classifier 2>&1")
+    print(f"[TC DEBUG OUTPUT]:\n{out.strip()}")
+
+    # Check if filter was actually installed
+    check_filter = server.cmd("tc filter show dev server-eth0 egress")
+    if "stob_defense" in check_filter or "bpf" in check_filter:
+        print("*** [STOB] Timing: eBPF jitter active (Successfully attached to TC egress!)")
+    else:
+        print("[WARN] eBPF failed, falling back to netem jitter...")
         server.cmd("tc qdisc del dev server-eth0 root 2>/dev/null || true")
         server.cmd("tc qdisc add dev server-eth0 root netem delay 5ms 5ms distribution normal")
         print("*** [STOB] Timing: netem jitter active (5ms +/- 5ms)")
-    else:
-        print("*** [STOB] Timing: eBPF jitter active (monotonic EDT + FQ)")
 
     print("*** [STOB] Defense active.")
-
 # ─────────────────────────────────────────────
 # FETCH HELPERS
 # ─────────────────────────────────────────────
@@ -215,7 +223,7 @@ if __name__ == '__main__':
 
     try:
         # Phase 1: clean, undefended traffic
-        run_clean_collection(net, CLEAN_DIR, CLEAN_SAMPLES)
+        # run_clean_collection(net, CLEAN_DIR, CLEAN_SAMPLES)
 
         # Phase 2: apply STOB defense
         apply_stob_defense(net)
