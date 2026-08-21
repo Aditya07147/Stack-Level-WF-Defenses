@@ -27,7 +27,6 @@ The project is structured logically into standalone pipelines:
 └── LINUX_GUIDE.md                            # Complete guide for running and troubleshooting on Linux
 ```
 
-> **Detailed Guide**: See [LINUX_GUIDE.md](LINUX_GUIDE.md) for full Linux setup, compilation, and troubleshooting instructions.
 
 ##  Background & Motivation
 
