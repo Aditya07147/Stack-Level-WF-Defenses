@@ -5,7 +5,7 @@ import os
 PORT = 8080
 SITES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sites")
 
-SESSION_TARGET_BYTES = 30 * 1024 * 1024  # 30 MB
+SESSION_TARGET_BYTES = 3 * 1024 * 1024  # 3 MB
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -16,7 +16,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if rel_path.startswith("__pad__"):
             try:
                 need = int(self.path.split("need=")[1])
-            except:
+            except Exception:
                 need = 0
             need = max(0, need)
             self.send_response(200)
@@ -42,11 +42,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(content)
         else:
-            self.send_error(404, "File Not Found")
+            self.send_error(404, f"File Not Found: {rel_path}")
 
-    def log_message(self, format, *args): return
+    def log_message(self, format, *args):
+        return
 
 if __name__ == "__main__":
+    if not os.path.exists(SITES_DIR):
+        try:
+            from generate_sites import generate_sites
+            generate_sites(SITES_DIR)
+        except Exception as e:
+            print(f"[WARN] Could not auto-generate sites: {e}")
+
+    # Allow immediate address reuse
+    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
         print(f"Server serving from {SITES_DIR} at port {PORT}")
         httpd.serve_forever()

@@ -14,15 +14,20 @@ The project is structured logically into standalone pipelines:
 │   ├── CS544_Course_Project_Report.pdf       # Complete academic project report (PDF)
 │   └── Research_Paper.pdf                    # Reference HotNets '25 "Stob" research paper (PDF)
 ├── ebpf/
+│   ├── Makefile                              # Makefile for building eBPF bytecode
 │   └── stob_kern.c                           # eBPF C program to inject TC egress timing jitter
 ├── mininet/
+│   ├── generate_sites.py                     # Deterministic generator for 10 mock sites
 │   ├── mock_server.py                        # Python server serving 10 sites with dynamic 3MB padding
 │   └── run_experiment.py                     # Virtual network topology, data collection, and traffic capture
-└── ml_evaluation/
-    ├── train_model1.py                       # Trains baseline classifier on undefended traffic (90.00% accuracy)
-    ├── train_model2.py                       # Trains adaptive classifier on defended traffic (30.00% accuracy)
-    └── eval_cross.py                         # Evaluates Model 1 on defended traffic (10.00% random chance baseline)
+├── ml_evaluation/
+│   ├── train_model1.py                       # Trains baseline classifier on undefended traffic (90.00% accuracy)
+│   ├── train_model2.py                       # Trains adaptive classifier on defended traffic (30.00% accuracy)
+│   └── eval_cross.py                         # Evaluates Model 1 on defended traffic (10.00% random chance baseline)
+└── LINUX_GUIDE.md                            # Complete guide for running and troubleshooting on Linux
 ```
+
+> **Detailed Guide**: See [LINUX_GUIDE.md](LINUX_GUIDE.md) for full Linux setup, compilation, and troubleshooting instructions.
 
 ##  Background & Motivation
 
@@ -66,15 +71,31 @@ Our C program attaches to the **Traffic Control (TC) egress hook** of the interf
 typedef __u64 u64;
 typedef __u32 u32;
 
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, u32);
+    __type(value, u64);
+    __uint(max_entries, 1);
+} last_departure_map SEC(".maps");
+
 SEC("classifier")
 int stob_defense(struct __sk_buff *skb) {
     u64 now = bpf_ktime_get_ns();
+    u32 key = 0;
+    u64 *last_tstamp = bpf_map_lookup_elem(&last_departure_map, &key);
 
-    // Inject a base delay of 5ms + random jitter of 0-5ms (5,000,000 nanoseconds)
     u32 jitter = bpf_get_prandom_u32() % 5000000;
     u64 delay = 5000000 + (u64)jitter;
+    u64 departure = now + delay;
 
-    skb->tstamp = now + delay;
+    if (last_tstamp) {
+        if (*last_tstamp + delay > departure) {
+            departure = *last_tstamp + delay;
+        }
+        *last_tstamp = departure;
+    }
+
+    skb->tstamp = departure;
     return TC_ACT_OK;
 }
 
