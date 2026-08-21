@@ -1,8 +1,13 @@
+"""
+eval_cross.py — Cross-dataset evaluation using tshark
+"""
+
 import os
 import subprocess
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
+
 
 def extract_features(pcap_path):
     try:
@@ -32,8 +37,10 @@ def extract_features(pcap_path):
     except Exception:
         return None
 
+
 COLS = ['in_bytes', 'out_bytes', 'in_pkts', 'out_pkts',
         'iat_mean', 'iat_range', 'iat_median']
+
 
 def build_dataset(data_dir):
     features_list, labels = [], []
@@ -46,6 +53,7 @@ def build_dataset(data_dir):
             features_list.append(feat)
             labels.append(filename.split('_')[0])
     return pd.DataFrame(features_list, columns=COLS), labels
+
 
 if __name__ == "__main__":
     X_clean, y_clean = build_dataset("clean_dataset")

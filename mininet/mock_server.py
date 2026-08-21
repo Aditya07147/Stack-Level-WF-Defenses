@@ -3,16 +3,19 @@ import socketserver
 import os
 
 PORT = 8080
-SITES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sites")
 
-SESSION_TARGET_BYTES = 30 * 1024 * 1024  # 30 MB
+# Check both possible locations for sites/
+if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "sites")):
+    SITES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sites")
+else:
+    SITES_DIR = os.path.abspath("sites")
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         rel_path = self.path.lstrip('/')
 
         # Special padding endpoint: client calls this at end of every session
-        # with ?need=<bytes> to top up to SESSION_TARGET_BYTES
+        # with ?need=<bytes> to top up to target bytes
         if rel_path.startswith("__pad__"):
             try:
                 need = int(self.path.split("need=")[1])
@@ -23,7 +26,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-type", "application/octet-stream")
             self.send_header("Content-length", str(need))
             self.end_headers()
-            # Send in chunks to avoid allocating huge buffer
+            
             chunk = b'0' * 65536
             remaining = need
             while remaining > 0:
@@ -42,9 +45,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(content)
         else:
+            print(f"[404 ERROR] File not found at: {full_path}")
             self.send_error(404, "File Not Found")
 
-    def log_message(self, format, *args): return
+    def log_message(self, format, *args): 
+        return
 
 if __name__ == "__main__":
     with socketserver.TCPServer(("", PORT), Handler) as httpd:

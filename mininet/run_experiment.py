@@ -10,7 +10,7 @@ SITES = [f"site{i}" for i in range(1, 11)]
 CLEAN_SAMPLES = 10
 STOB_SAMPLES  = 5
 SERVER_IP     = "10.0.0.2"
-SESSION_TARGET_BYTES = 3 * 1024 * 1024  # 3MB — only used for STOB padding
+SESSION_TARGET_BYTES = 3 * 1024 * 1024  # 3MB — used for STOB volume padding
 
 SITE_FILES = {
     "site1":  [("index.html", "get")],
@@ -175,7 +175,7 @@ def run_stob_collection(net, data_dir, samples):
 if __name__ == '__main__':
     if not os.path.exists("stob_kern.o"):
         print("[ERROR] stob_kern.o not found.")
-        print("        Run: clang -O2 -target bpf -c stob_kern.c -o stob_kern.o")
+        print("        Run: clang -O2 -target bpf -c ebpf/stob_kern.c -o stob_kern.o")
         exit(1)
 
     os.system("mn -c 2>/dev/null")

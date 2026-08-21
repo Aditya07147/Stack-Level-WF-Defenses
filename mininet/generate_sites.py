@@ -5,7 +5,7 @@ SITE_SPECS = {
     "site1":  {"index.html": 150000},
     "site2":  {"index.html": 800000},
     "site3":  {"index.html": 2500000},
-    "site4":  {f"img{i}.jpg": 300000 for i in range(1, 6)}, # 5 images, 300KB each
+    "site4":  {f"img{i}.jpg": 300000 for i in range(1, 6)},   # 5 images, 300KB each
     "site5":  {f"data{i}.bin": 100000 for i in range(1, 11)}, # 10 files, 100KB each
     "site6":  {"index.html": 45000},
     "site7":  {"index.html": 1200000},
@@ -14,14 +14,15 @@ SITE_SPECS = {
     "site10": {"index.html": 950000},
 }
 
-os.makedirs("sites", exist_ok=True)
+base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sites")
+os.makedirs(base_dir, exist_ok=True)
 
 for site, files in SITE_SPECS.items():
-    site_dir = os.path.join("sites", site)
+    site_dir = os.path.join(base_dir, site)
     os.makedirs(site_dir, exist_ok=True)
     for filename, size in files.items():
         filepath = os.path.join(site_dir, filename)
         with open(filepath, "wb") as f:
             f.write(os.urandom(size))
             
-print("[✓] Successfully generated dummy sites for traffic fingerprinting.")
+print("[✓] mininet/sites successfully created with all 10 websites!")

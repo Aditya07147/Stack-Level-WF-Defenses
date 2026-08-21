@@ -1,0 +1,4 @@
+clean_dataset/
+stob_dataset/
+stob_kern.o
+*:Zone.Identifier

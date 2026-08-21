@@ -16,7 +16,6 @@ int stob_defense(struct __sk_buff *skb) {
      * until that exact time. This destroys the 'inter-arrival time' 
      * features that the Random Forest model uses to identify sites.
      */
-    
     u64 now = bpf_ktime_get_ns();
     
     /* 
@@ -24,8 +23,8 @@ int stob_defense(struct __sk_buff *skb) {
      * plus a random jitter of 0-5ms (0-5,000,000 ns).
      * This creates a 'Regularized' but noisy timing pattern.
      */
-	u32 jitter = bpf_get_prandom_u32() % 5000000; 
-	u64 delay = 5000000 + (u64)jitter;
+    u32 jitter = bpf_get_prandom_u32() % 5000000; 
+    u64 delay = 5000000 + (u64)jitter; 
     
     skb->tstamp = now + delay;
 
