@@ -45,26 +45,34 @@ def apply_stob_defense(net):
     server = net.get('server')
     print("\n*** [STOB] Applying defense...")
 
-    # Mount BPF fs (required for eBPF TC programs)
-    os.system("mount -t bpf bpf /sys/fs/bpf/ 2>/dev/null || true")
+    # Mount BPF fs directly INSIDE the server namespace
+    server.cmd("mkdir -p /sys/fs/bpf")
+    server.cmd("mount -t bpf bpf /sys/fs/bpf 2>/dev/null || true")
+    server.cmd("mkdir -p /sys/fs/bpf/tc/globals 2>/dev/null || true")
 
     # --- MSS Clamping via iptables ---
-    server.cmd("iptables -A OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 500")
-    server.cmd("iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 500")
+    server.cmd("iptables -A OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 500 2>/dev/null || true")
+    server.cmd("iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 500 2>/dev/null || true")
 
     # --- Timing Regularization ---
     server.cmd("tc qdisc del dev server-eth0 root 2>/dev/null || true")
+    server.cmd("tc qdisc del dev server-eth0 clsact 2>/dev/null || true")
     server.cmd("tc qdisc add dev server-eth0 root fq")
     server.cmd("tc qdisc add dev server-eth0 clsact")
 
-    out = server.cmd("tc filter add dev server-eth0 egress bpf obj stob_kern.o sec classifier 2>&1")
-    if "Unable to load" in out or "failed" in out.lower():
+    bpf_obj = os.path.abspath("stob_kern.o")
+    out = server.cmd(f"tc filter add dev server-eth0 egress bpf da obj {bpf_obj} sec classifier 2>&1")
+    print(f"[TC DEBUG OUTPUT]:\n{out.strip()}")
+
+    # Check if filter was actually installed
+    check_filter = server.cmd("tc filter show dev server-eth0 egress")
+    if "stob_defense" in check_filter or "bpf" in check_filter:
+        print("*** [STOB] Timing: eBPF jitter active (Successfully attached to TC egress!)")
+    else:
         print("[WARN] eBPF failed, falling back to netem jitter...")
         server.cmd("tc qdisc del dev server-eth0 root 2>/dev/null || true")
         server.cmd("tc qdisc add dev server-eth0 root netem delay 5ms 5ms distribution normal")
         print("*** [STOB] Timing: netem jitter active (5ms +/- 5ms)")
-    else:
-        print("*** [STOB] Timing: eBPF jitter active")
 
     print("*** [STOB] Defense active.")
 
@@ -184,7 +192,7 @@ if __name__ == '__main__':
     server.cmd("ethtool -K server-eth0 gro off gso off tso off 2>/dev/null")
     client.cmd("ethtool -K client-eth0 gro off gso off tso off 2>/dev/null")
 
-    server.cmd("python3 server/mock_server.py &")
+    server.cmd("python3 mininet/mock_server.py &")
     time.sleep(2)
 
     test = os.popen("tcpdump --help 2>&1 | grep snaplen").read()
