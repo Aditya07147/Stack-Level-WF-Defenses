@@ -223,7 +223,7 @@ if __name__ == '__main__':
 
     try:
         # Phase 1: clean, undefended traffic
-        # run_clean_collection(net, CLEAN_DIR, CLEAN_SAMPLES)
+        run_clean_collection(net, CLEAN_DIR, CLEAN_SAMPLES)
 
         # Phase 2: apply STOB defense
         apply_stob_defense(net)
